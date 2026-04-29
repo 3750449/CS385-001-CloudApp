@@ -8,9 +8,14 @@ const PORT = process.env.PORT || 8199;
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (_req, res) => {
+  res.send('StudyLink API is running');
+});
+
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
+
     res.json({
       ok: true,
       service: 'studylink-api',
@@ -19,7 +24,13 @@ app.get('/api/health', async (_req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: 'database failed' });
+
+    res.json({
+      ok: false,
+      service: 'studylink-api',
+      database: 'not connected',
+      timestamp: new Date().toISOString(),
+    });
   }
 });
 
@@ -70,13 +81,10 @@ app.post('/api/notes', async (req, res) => {
   }
 });
 
-initDb()
-  .then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`API listening on http://0.0.0.0:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Database init failed:', err);
-    process.exit(1);
-  });
+initDb().catch((err) => {
+  console.error('Database init failed:', err);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API listening on http://0.0.0.0:${PORT}`);
+});
