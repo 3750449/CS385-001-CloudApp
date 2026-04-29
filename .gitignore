@@ -1,8 +1,6 @@
 node_modules/
-studylink.db
-*.log
+dist/
 .env
+*.db
+backend/studylink.db
 .DS_Store
-npm-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
