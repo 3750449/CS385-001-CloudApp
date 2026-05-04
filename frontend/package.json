@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@okta/okta-auth-js": "^8.0.0",
+    "@okta/okta-react": "^6.11.0",
     "bootstrap": "^5.3.8",
     "compression": "^1.8.1",
     "cors": "^2.8.5",

@@ -10,10 +10,7 @@ export type Note = {
   edits?: number;
 };
 
-const BASE =
-  (typeof window !== "undefined" && (window as any).__VITE_API_URL__) ||
-  import.meta.env.VITE_API_URL ||
-  `${window.location.protocol}//${window.location.hostname}:8199`;
+const BASE = "https://cs385-001-cloudapp-production.up.railway.app";
 
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
