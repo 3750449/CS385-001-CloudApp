@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOktaAuth } from "@okta/okta-react";
 import {
   health as apiHealth,
   listNotes,
@@ -11,13 +12,40 @@ import {
 import "./App.css";
 
 export default function App() {
+  const { oktaAuth, authState } = useOktaAuth();
+
+  // 🔐 LOGIN SCREEN
+  if (!authState || !authState.isAuthenticated) {
+    return (
+      <div style={{ padding: "2rem" }}>
+        <h2>Login Required</h2>
+        <button
+          onClick={async () => {
+            console.log("Okta login clicked");
+            await oktaAuth.signInWithRedirect({ originalUri: "/" });
+          }}
+        >
+          Login with Okta
+        </button>
+      </div>
+    );
+  }
+
+  // 👉 Render main app AFTER login
+  return <MainApp oktaAuth={oktaAuth} />;
+}
+
+/* ========================= */
+/* ✅ REAL APP (after login) */
+/* ========================= */
+
+function MainApp({ oktaAuth }: any) {
   const [health, setHealth] = useState<Health | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCourse, setActiveCourse] = useState<string | "ALL">("ALL");
   const [q, setQ] = useState("");
 
-  // minimal create form (can be collapsed if you want)
   const [newTitle, setNewTitle] = useState("");
   const [newCourse, setNewCourse] = useState("");
   const [newContent, setNewContent] = useState("");
@@ -75,7 +103,10 @@ export default function App() {
     setNotes((prev) => prev.filter((x) => x.id !== n.id));
   }
 
-  async function onQuickEdit(n: Note, patch: Partial<Pick<Note, "title" | "course" | "content">>) {
+  async function onQuickEdit(
+    n: Note,
+    patch: Partial<Pick<Note, "title" | "course" | "content">>
+  ) {
     const updated = await updateNote(n.id, patch);
     setNotes((prev) => prev.map((x) => (x.id === n.id ? updated : x)));
   }
@@ -84,32 +115,41 @@ export default function App() {
     <div className="page">
       <header className="topbar">
         <h1>Class Notes</h1>
+
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search notes… (title, course, content)"
+          placeholder="Search notes…"
           className="search"
         />
+
+        <button
+          className="btn subtle"
+          onClick={() => oktaAuth.signOut()}
+        >
+          Logout
+        </button>
       </header>
 
       <main className="layout">
-        {/* LEFT: course column */}
         <aside className="left-nav">
           <div className="left-title">Courses</div>
+
           <ul className="course-list">
             {courses.map((c) => (
               <li
                 key={c}
-                className={["course-pill", activeCourse === c ? "active" : ""].join(" ")}
+                className={[
+                  "course-pill",
+                  activeCourse === c ? "active" : "",
+                ].join(" ")}
                 onClick={() => setActiveCourse(c as any)}
-                title={c === "ALL" ? "Show all courses" : c}
               >
                 {c}
               </li>
             ))}
           </ul>
 
-          {/* small health chip */}
           <div className="health">
             {health ? (
               health.ok ? (
@@ -123,32 +163,30 @@ export default function App() {
           </div>
         </aside>
 
-        {/* RIGHT: content */}
         <section className="content">
-          {/* create form (optional) */}
           <div className="create">
             <input
               className="in"
               placeholder="Title"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              maxLength={120}
             />
+
             <input
               className="in"
-              placeholder="Course (e.g., ENGL_273)"
+              placeholder="Course"
               value={newCourse}
               onChange={(e) => setNewCourse(e.target.value)}
-              maxLength={32}
             />
+
             <textarea
               className="in"
               placeholder="Content"
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              maxLength={5000}
               rows={3}
             />
+
             <button className="btn" onClick={onCreate}>
               Add Note
             </button>
@@ -157,25 +195,43 @@ export default function App() {
           {loading ? (
             <div className="loading">Loading…</div>
           ) : filtered.length === 0 ? (
-            <div className="empty">No notes match your filters.</div>
+            <div className="empty">No notes found.</div>
           ) : (
             <ul className="notes">
               {filtered.map((n) => (
-                <li key={n.id} className="note-card" tabIndex={0}>
+                <li key={n.id} className="note-card">
                   <div className="note-title">{n.title}</div>
+
                   <div className="note-meta">
                     {n.course} • {new Date(n.createdAt).toLocaleString()}
                   </div>
+
                   <div className="note-body">{n.content}</div>
+
                   <div className="note-actions">
+
+	<button
+	  className="btn subtle"
+	  onClick={async () => {
+	    const title = window.prompt("Edit title:", n.title);
+	    if (title === null) return;
+
+	    const course = window.prompt("Edit course:", n.course);
+	    if (course === null) return;
+
+	    const content = window.prompt("Edit content:", n.content);
+	    if (content === null) return;
+
+	    await onQuickEdit(n, { title, course, content });
+	  }}
+	>
+	  Edit
+	</button>
+
                     <button
-                      className="btn subtle"
-                      onClick={() => onQuickEdit(n, { title: n.title + " (edited)" })}
-                      title="Quick edit title (demo)"
+                      className="btn danger"
+                      onClick={() => onDelete(n)}
                     >
-                      Edit
-                    </button>
-                    <button className="btn danger" onClick={() => onDelete(n)}>
                       Delete
                     </button>
                   </div>
@@ -186,7 +242,9 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="foot">© {new Date().getFullYear()} StudyLink</footer>
+      <footer className="foot">
+        © {new Date().getFullYear()} StudyLink
+      </footer>
     </div>
   );
 }
