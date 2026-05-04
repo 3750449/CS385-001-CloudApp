@@ -105,6 +105,40 @@ app.delete('/api/notes/:id', async (req, res) => {
   }
 });
 
+app.patch('/api/notes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, course, content } = req.body;
+
+    const result = await pool.query(
+      `
+      UPDATE notes
+      SET
+        title = COALESCE($1, title),
+        course = COALESCE($2, course),
+        content = COALESCE($3, content)
+      WHERE id = $4
+      RETURNING
+        id,
+        title,
+        course,
+        content,
+        created_at AS "createdAt"
+      `,
+      [title, course, content, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'note not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`API listening on http://0.0.0.0:${PORT}`);
 });
