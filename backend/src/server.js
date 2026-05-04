@@ -85,6 +85,26 @@ initDb().catch((err) => {
   console.error('Database init failed:', err);
 });
 
+app.delete('/api/notes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM notes WHERE id = $1 RETURNING id',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'note not found' });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`API listening on http://0.0.0.0:${PORT}`);
 });
