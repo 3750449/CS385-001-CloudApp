@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOktaAuth } from "@okta/okta-react";
+
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  type User,
+} from "firebase/auth";
+
+import { auth, googleProvider } from "./firebase";
+
 import {
   health as apiHealth,
   listNotes,
@@ -9,37 +19,14 @@ import {
   type Note,
   type Health,
 } from "./api";
+
 import "./App.css";
 
 export default function App() {
   const { oktaAuth, authState } = useOktaAuth();
 
-  // 🔐 LOGIN SCREEN
-  if (!authState || !authState.isAuthenticated) {
-    return (
-      <div style={{ padding: "2rem" }}>
-        <h2>Login Required</h2>
-        <button
-          onClick={async () => {
-            console.log("Okta login clicked");
-            await oktaAuth.signInWithRedirect({ originalUri: "/" });
-          }}
-        >
-          Login with Okta
-        </button>
-      </div>
-    );
-  }
+  const [googleUser, setGoogleUser] = useState<User | null>(null);
 
-  // 👉 Render main app AFTER login
-  return <MainApp oktaAuth={oktaAuth} />;
-}
-
-/* ========================= */
-/* ✅ REAL APP (after login) */
-/* ========================= */
-
-function MainApp({ oktaAuth }: any) {
   const [health, setHealth] = useState<Health | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +38,16 @@ function MainApp({ oktaAuth }: any) {
   const [newContent, setNewContent] = useState("");
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setGoogleUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!authState?.isAuthenticated && !googleUser) return;
+
     (async () => {
       try {
         const [h, ns] = await Promise.all([apiHealth(), listNotes()]);
@@ -62,7 +59,23 @@ function MainApp({ oktaAuth }: any) {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [authState?.isAuthenticated, googleUser]);
+
+  async function loginWithGoogle() {
+    await signInWithPopup(auth, googleProvider);
+  }
+
+  async function logoutGoogle() {
+    await signOut(auth);
+  }
+
+  async function loginWithOkta() {
+    await oktaAuth.signInWithRedirect({ originalUri: "/" });
+  }
+
+  async function logoutOkta() {
+    await oktaAuth.signOut();
+  }
 
   const courses = useMemo(() => {
     const s = new Set(notes.map((n) => n.course));
@@ -72,6 +85,7 @@ function MainApp({ oktaAuth }: any) {
   const filtered = useMemo(() => {
     const hay = (s: string) => s.toLowerCase();
     const qq = hay(q);
+
     return notes
       .filter((n) => (activeCourse === "ALL" ? true : n.course === activeCourse))
       .filter(
@@ -86,11 +100,13 @@ function MainApp({ oktaAuth }: any) {
 
   async function onCreate() {
     if (!newTitle || !newCourse || !newContent) return;
+
     const created = await createNote({
       title: newTitle,
       course: newCourse,
       content: newContent,
     });
+
     setNotes((prev) => [created, ...prev]);
     setNewTitle("");
     setNewCourse("");
@@ -111,6 +127,21 @@ function MainApp({ oktaAuth }: any) {
     setNotes((prev) => prev.map((x) => (x.id === n.id ? updated : x)));
   }
 
+  if (!authState?.isAuthenticated && !googleUser) {
+    return (
+      <div style={{ padding: "2rem" }}>
+        <h2>Login Required</h2>
+
+        <button onClick={loginWithOkta}>Login with Okta</button>
+
+        <br />
+        <br />
+
+        <button onClick={loginWithGoogle}>Login with Google</button>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <header className="topbar">
@@ -123,12 +154,17 @@ function MainApp({ oktaAuth }: any) {
           className="search"
         />
 
-        <button
-          className="btn subtle"
-          onClick={() => oktaAuth.signOut()}
-        >
-          Logout
-        </button>
+        {googleUser && (
+          <button className="btn subtle" onClick={logoutGoogle}>
+            Logout Google
+          </button>
+        )}
+
+        {authState?.isAuthenticated && (
+          <button className="btn subtle" onClick={logoutOkta}>
+            Logout Okta
+          </button>
+        )}
       </header>
 
       <main className="layout">
@@ -209,24 +245,23 @@ function MainApp({ oktaAuth }: any) {
                   <div className="note-body">{n.content}</div>
 
                   <div className="note-actions">
+                    <button
+                      className="btn subtle"
+                      onClick={async () => {
+                        const title = window.prompt("Edit title:", n.title);
+                        if (title === null) return;
 
-	<button
-	  className="btn subtle"
-	  onClick={async () => {
-	    const title = window.prompt("Edit title:", n.title);
-	    if (title === null) return;
+                        const course = window.prompt("Edit course:", n.course);
+                        if (course === null) return;
 
-	    const course = window.prompt("Edit course:", n.course);
-	    if (course === null) return;
+                        const content = window.prompt("Edit content:", n.content);
+                        if (content === null) return;
 
-	    const content = window.prompt("Edit content:", n.content);
-	    if (content === null) return;
-
-	    await onQuickEdit(n, { title, course, content });
-	  }}
-	>
-	  Edit
-	</button>
+                        await onQuickEdit(n, { title, course, content });
+                      }}
+                    >
+                      Edit
+                    </button>
 
                     <button
                       className="btn danger"
