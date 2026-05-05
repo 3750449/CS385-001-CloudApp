@@ -34,18 +34,29 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-app.get('/api/notes', async (_req, res) => {
+app.get('/api/notes', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const userEmail = req.query.email;
+
+    if (!userEmail) {
+      return res.json([]);
+    }
+
+    const result = await pool.query(
+      `
       SELECT
         id,
         title,
         course,
         content,
+        author_email AS "authorEmail",
         created_at AS "createdAt"
       FROM notes
+      WHERE author_email = $1
       ORDER BY id DESC
-    `);
+      `,
+      [userEmail]
+    );
 
     res.json(result.rows);
   } catch (err) {
@@ -56,22 +67,22 @@ app.get('/api/notes', async (_req, res) => {
 
 app.post('/api/notes', async (req, res) => {
   try {
-    const { title, course, content } = req.body;
+     const { title, course, content, authorEmail } = req.body;
 
     if (!title || !course || !content) {
       return res.status(400).json({ error: 'title, course, and content required' });
     }
 
     const result = await pool.query(
-      `INSERT INTO notes (title, course, content)
-       VALUES ($1, $2, $3)
+      `INSERT INTO notes (title, course, content, author_email)
+VALUES ($1, $2, $3, $4)
        RETURNING
          id,
          title,
          course,
          content,
          created_at AS "createdAt"`,
-      [title, course, content]
+[title, course, content, authorEmail || null]
     );
 
     res.status(201).json(result.rows[0]);

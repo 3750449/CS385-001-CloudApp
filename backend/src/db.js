@@ -8,13 +8,14 @@ const pool = new Pool({
 
 async function initDb() {
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS notes (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      course TEXT NOT NULL,
-      content TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+CREATE TABLE IF NOT EXISTS notes (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  course TEXT NOT NULL,
+  content TEXT NOT NULL,
+  author_email TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
   `);
 }
 
