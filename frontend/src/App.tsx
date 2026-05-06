@@ -457,11 +457,15 @@ export default function App() {
           <p>
 StudyLink is a multi-cloud storage and authentication web application that works to solve current education problems 
 and act as a way to support personal student motivation through preventing problems like: 
+          </p>
 
+          <p>
 	Notes and study materials are scattered across chats and personal drives
 	Hard to find reliable, course-matched resources fast
-	Collaboration friction -> time wasted, lower outcomes
+	Collaboration friction to time wasted, lower outcomes
+          </p>
 
+          <p>
 Users can sign in, create notes, upload attachments, filter by course, and view shared class materials. 
 This application Target Users are College students in medium to large classes and Tas or instructors 
 who want a lightweight website hub that can share access with their students from anywhere. 
