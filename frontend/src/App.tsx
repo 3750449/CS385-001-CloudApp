@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 
 import { auth, googleProvider } from "./firebase";
+import { supabase } from "./supabase";
 
 import {
   health as apiHealth,
@@ -43,6 +44,8 @@ export default function App() {
   const [newTitle, setNewTitle] = useState("");
   const [newCourse, setNewCourse] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -58,7 +61,6 @@ export default function App() {
     (async () => {
       try {
         const [h, ns] = await Promise.all([apiHealth(), listNotes()]);
-
         setHealth(h);
         setNotes(ns);
       } catch (e) {
@@ -91,10 +93,7 @@ export default function App() {
   }, [notes]);
 
   const authors = useMemo(() => {
-    const s = new Set(
-      notes.map((n) => n.authorEmail || "Unknown User")
-    );
-
+    const s = new Set(notes.map((n) => n.authorEmail || "Unknown User"));
     return ["ALL", ...Array.from(s).sort((a, b) => a.localeCompare(b))];
   }, [notes]);
 
@@ -117,7 +116,8 @@ export default function App() {
           hay(n.title).includes(qq) ||
           hay(n.course).includes(qq) ||
           hay(n.content).includes(qq) ||
-          hay(n.authorEmail || "").includes(qq)
+          hay(n.authorEmail || "").includes(qq) ||
+          hay(n.fileName || "").includes(qq)
       )
       .sort((a, b) => b.id - a.id);
   }, [notes, activeCourse, activeAuthor, q]);
@@ -125,20 +125,54 @@ export default function App() {
   async function onCreate() {
     if (!newTitle || !newCourse || !newContent) return;
 
-    const created = await createNote({
-      title: newTitle,
-      course: newCourse,
-      content: newContent,
-      authorEmail: googleUser?.email ?? "unknown",
-    });
+    setUploading(true);
 
-    setNotes((prev) => [created, ...prev]);
+    try {
+      let fileUrl: string | undefined;
+      let fileName: string | undefined;
 
-    setNewTitle("");
-    setNewCourse("");
-    setNewContent("");
-    setActiveCourse("ALL");
-    setActiveAuthor("ALL");
+      if (selectedFile && googleUser?.email) {
+        const safeName = selectedFile.name.replaceAll(" ", "-");
+        const path = `${googleUser.email}/${Date.now()}-${safeName}`;
+
+        const { error } = await supabase.storage
+          .from("studylink-files")
+          .upload(path, selectedFile);
+
+        if (error) {
+          console.error(error);
+          alert("File upload failed");
+          return;
+        }
+
+        const { data } = supabase.storage
+          .from("studylink-files")
+          .getPublicUrl(path);
+
+        fileUrl = data.publicUrl;
+        fileName = selectedFile.name;
+      }
+
+      const created = await createNote({
+        title: newTitle,
+        course: newCourse,
+        content: newContent,
+        authorEmail: googleUser?.email ?? "unknown",
+        fileUrl,
+        fileName,
+      });
+
+      setNotes((prev) => [created, ...prev]);
+
+      setNewTitle("");
+      setNewCourse("");
+      setNewContent("");
+      setSelectedFile(null);
+      setActiveCourse("ALL");
+      setActiveAuthor("ALL");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function onDelete(n: Note) {
@@ -275,8 +309,14 @@ export default function App() {
               rows={3}
             />
 
-            <button className="btn" onClick={onCreate}>
-              Add Note
+            <input
+              className="in"
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+            />
+
+            <button className="btn" onClick={onCreate} disabled={uploading}>
+              {uploading ? "Uploading..." : "Add Note"}
             </button>
           </div>
 
@@ -296,6 +336,14 @@ export default function App() {
                   </div>
 
                   <div className="note-body">{n.content}</div>
+
+                  {n.fileUrl && (
+                    <div style={{ marginTop: "0.75rem" }}>
+                      <a href={n.fileUrl} target="_blank" rel="noreferrer">
+                        📎 {n.fileName || "Attached file"}
+                      </a>
+                    </div>
+                  )}
 
                   <div className="note-actions">
                     {canModify(n) && (

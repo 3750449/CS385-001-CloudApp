@@ -15,6 +15,8 @@ export type Note = {
   updatedAt?: string;
   edits?: number;
   authorEmail?: string;
+  fileUrl?: string;
+  fileName?: string;
 };
 
 const BASE = "https://cs385-001-cloudapp-production.up.railway.app";
@@ -42,6 +44,8 @@ export async function createNote(n: {
   course: string;
   content: string;
   authorEmail?: string;
+  fileUrl?: string;
+  fileName?: string;
 }): Promise<Note> {
   const res = await fetch(`${BASE}/api/notes`, {
     method: "POST",
