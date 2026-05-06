@@ -27,8 +27,7 @@ export default function App() {
 
   const [googleUser, setGoogleUser] = useState<User | null>(null);
 
-  // ✅ ADMIN EMAILS
-  const ADMIN_EMAILS = ["YOUR_EMAIL@gmail.com"];
+  const ADMIN_EMAILS = ["3750449@gmail.com"];
 
   const isAdmin = googleUser?.email
     ? ADMIN_EMAILS.includes(googleUser.email)
@@ -130,7 +129,7 @@ export default function App() {
   }
 
   async function onDelete(n: Note) {
-    await removeNote(n.id);
+    await removeNote(n.id, googleUser?.email || "");
     setNotes((prev) => prev.filter((x) => x.id !== n.id));
   }
 
@@ -139,10 +138,7 @@ export default function App() {
     patch: Partial<Pick<Note, "title" | "course" | "content">>
   ) {
     const updated = await updateNote(n.id, patch);
-
-    setNotes((prev) =>
-      prev.map((x) => (x.id === n.id ? updated : x))
-    );
+    setNotes((prev) => prev.map((x) => (x.id === n.id ? updated : x)));
   }
 
   if (!authState?.isAuthenticated && !googleUser) {
@@ -150,16 +146,12 @@ export default function App() {
       <div style={{ padding: "2rem" }}>
         <h2>Login Required</h2>
 
-        <button onClick={loginWithOkta}>
-          Login with Okta
-        </button>
+        <button onClick={loginWithOkta}>Login with Okta</button>
 
         <br />
         <br />
 
-        <button onClick={loginWithGoogle}>
-          Login with Google
-        </button>
+        <button onClick={loginWithGoogle}>Login with Google</button>
       </div>
     );
   }
@@ -169,12 +161,7 @@ export default function App() {
       <header className="topbar">
         <h1>Class Notes</h1>
 
-        {/* ✅ ADMIN BADGE */}
-        {isAdmin && (
-          <span className="admin-badge">
-            Admin
-          </span>
-        )}
+        {isAdmin && <span className="admin-badge">Admin</span>}
 
         <input
           value={q}
@@ -184,19 +171,13 @@ export default function App() {
         />
 
         {googleUser && (
-          <button
-            className="btn subtle"
-            onClick={logoutGoogle}
-          >
+          <button className="btn subtle" onClick={logoutGoogle}>
             Logout Google
           </button>
         )}
 
         {authState?.isAuthenticated && (
-          <button
-            className="btn subtle"
-            onClick={logoutOkta}
-          >
+          <button className="btn subtle" onClick={logoutOkta}>
             Logout Okta
           </button>
         )}
@@ -204,9 +185,7 @@ export default function App() {
 
       <main className="layout">
         <aside className="left-nav">
-          <div className="left-title">
-            Courses
-          </div>
+          <div className="left-title">Courses</div>
 
           <ul className="course-list">
             {courses.map((c) => (
@@ -216,9 +195,7 @@ export default function App() {
                   "course-pill",
                   activeCourse === c ? "active" : "",
                 ].join(" ")}
-                onClick={() =>
-                  setActiveCourse(c as any)
-                }
+                onClick={() => setActiveCourse(c as any)}
               >
                 {c}
               </li>
@@ -244,116 +221,68 @@ export default function App() {
               className="in"
               placeholder="Title"
               value={newTitle}
-              onChange={(e) =>
-                setNewTitle(e.target.value)
-              }
+              onChange={(e) => setNewTitle(e.target.value)}
             />
 
             <input
               className="in"
               placeholder="Course"
               value={newCourse}
-              onChange={(e) =>
-                setNewCourse(e.target.value)
-              }
+              onChange={(e) => setNewCourse(e.target.value)}
             />
 
             <textarea
               className="in"
               placeholder="Content"
               value={newContent}
-              onChange={(e) =>
-                setNewContent(e.target.value)
-              }
+              onChange={(e) => setNewContent(e.target.value)}
               rows={3}
             />
 
-            <button
-              className="btn"
-              onClick={onCreate}
-            >
+            <button className="btn" onClick={onCreate}>
               Add Note
             </button>
           </div>
 
           {loading ? (
-            <div className="loading">
-              Loading…
-            </div>
+            <div className="loading">Loading…</div>
           ) : filtered.length === 0 ? (
-            <div className="empty">
-              No notes found.
-            </div>
+            <div className="empty">No notes found.</div>
           ) : (
             <ul className="notes">
               {filtered.map((n) => (
-                <li
-                  key={n.id}
-                  className="note-card"
-                >
-                  <div className="note-title">
-                    {n.title}
-                  </div>
+                <li key={n.id} className="note-card">
+                  <div className="note-title">{n.title}</div>
 
                   <div className="note-meta">
-                    {n.course} •{" "}
-                    {new Date(
-                      n.createdAt
-                    ).toLocaleString()}
+                    {n.course} • {new Date(n.createdAt).toLocaleString()}
                   </div>
 
-                  <div className="note-body">
-                    {n.content}
-                  </div>
+                  <div className="note-body">{n.content}</div>
 
                   <div className="note-actions">
                     <button
                       className="btn subtle"
                       onClick={async () => {
-                        const title =
-                          window.prompt(
-                            "Edit title:",
-                            n.title
-                          );
+                        const title = window.prompt("Edit title:", n.title);
+                        if (title === null) return;
 
-                        if (title === null)
-                          return;
+                        const course = window.prompt("Edit course:", n.course);
+                        if (course === null) return;
 
-                        const course =
-                          window.prompt(
-                            "Edit course:",
-                            n.course
-                          );
+                        const content = window.prompt("Edit content:", n.content);
+                        if (content === null) return;
 
-                        if (course === null)
-                          return;
-
-                        const content =
-                          window.prompt(
-                            "Edit content:",
-                            n.content
-                          );
-
-                        if (content === null)
-                          return;
-
-                        await onQuickEdit(n, {
-                          title,
-                          course,
-                          content,
-                        });
+                        await onQuickEdit(n, { title, course, content });
                       }}
                     >
                       Edit
                     </button>
 
-                    {/* ✅ ADMIN ONLY DELETE */}
                     {isAdmin && (
                       <button
                         className="btn danger"
-                        onClick={() =>
-                          onDelete(n)
-                        }
+                        onClick={() => onDelete(n)}
                       >
                         Delete
                       </button>
