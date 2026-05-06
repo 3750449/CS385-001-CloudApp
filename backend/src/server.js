@@ -81,6 +81,7 @@ VALUES ($1, $2, $3, $4)
          title,
          course,
          content,
+         author_email AS "authorEmail",
          created_at AS "createdAt"`,
 [title, course, content, authorEmail || null]
     );
@@ -134,6 +135,7 @@ app.patch('/api/notes/:id', async (req, res) => {
         title,
         course,
         content,
+        author_email AS "authorEmail",
         created_at AS "createdAt"
       `,
       [title, course, content, id]
