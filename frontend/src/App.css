@@ -217,3 +217,10 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: system
   .create { grid-template-columns: 1fr; }
   .create .btn { grid-column: 1 / -1; justify-self: start; }
 }
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin: 1rem 0;
+}

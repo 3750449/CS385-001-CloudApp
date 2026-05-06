@@ -34,6 +34,10 @@ export default function App() {
     ? ADMIN_EMAILS.includes(googleUser.email)
     : false;
 
+  const [activePage, setActivePage] = useState<"notes" | "files" | "about">(
+    "notes"
+  );
+
   const [health, setHealth] = useState<Health | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +125,12 @@ export default function App() {
       )
       .sort((a, b) => b.id - a.id);
   }, [notes, activeCourse, activeAuthor, q]);
+
+  const files = useMemo(() => {
+    return notes
+      .filter((n) => n.fileUrl)
+      .sort((a, b) => b.id - a.id);
+  }, [notes]);
 
   async function onCreate() {
     if (!newTitle || !newCourse || !newContent) return;
@@ -217,7 +227,7 @@ export default function App() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search notes…"
+          placeholder="Search notes..."
           className="search"
         />
 
@@ -234,156 +244,229 @@ export default function App() {
         )}
       </header>
 
-      <main className="layout">
-        <aside className="left-nav">
-          <div className="left-title">Courses</div>
+      <nav className="tabs">
+        <button className="btn subtle" onClick={() => setActivePage("notes")}>
+          Notes
+        </button>
 
-          <ul className="course-list">
-            {courses.map((c) => (
-              <li
-                key={c}
-                className={[
-                  "course-pill",
-                  activeCourse === c ? "active" : "",
-                ].join(" ")}
-                onClick={() => setActiveCourse(c as any)}
-              >
-                {c}
-              </li>
-            ))}
-          </ul>
+        <button className="btn subtle" onClick={() => setActivePage("files")}>
+          Files
+        </button>
 
-          <div className="left-title" style={{ marginTop: "1rem" }}>
-            Authors
-          </div>
+        <button className="btn subtle" onClick={() => setActivePage("about")}>
+          About
+        </button>
+      </nav>
 
-          <ul className="course-list">
-            {authors.map((a) => (
-              <li
-                key={a}
-                className={[
-                  "course-pill",
-                  activeAuthor === a ? "active" : "",
-                ].join(" ")}
-                onClick={() => setActiveAuthor(a as any)}
-              >
-                {a}
-              </li>
-            ))}
-          </ul>
+      {activePage === "notes" && (
+        <main className="layout">
+          <aside className="left-nav">
+            <div className="left-title">Courses</div>
 
-          <div className="health">
-            {health ? (
-              health.ok ? (
-                <span>API ✅</span>
+            <ul className="course-list">
+              {courses.map((c) => (
+                <li
+                  key={c}
+                  className={[
+                    "course-pill",
+                    activeCourse === c ? "active" : "",
+                  ].join(" ")}
+                  onClick={() => setActiveCourse(c as any)}
+                >
+                  {c}
+                </li>
+              ))}
+            </ul>
+
+            <div className="left-title" style={{ marginTop: "1rem" }}>
+              Authors
+            </div>
+
+            <ul className="course-list">
+              {authors.map((a) => (
+                <li
+                  key={a}
+                  className={[
+                    "course-pill",
+                    activeAuthor === a ? "active" : "",
+                  ].join(" ")}
+                  onClick={() => setActiveAuthor(a as any)}
+                >
+                  {a}
+                </li>
+              ))}
+            </ul>
+
+            <div className="health">
+              {health ? (
+                health.ok ? (
+                  <span>API ✅</span>
+                ) : (
+                  <span>API ⚠️</span>
+                )
               ) : (
-                <span>API ⚠️</span>
-              )
+                <span>API …</span>
+              )}
+            </div>
+          </aside>
+
+          <section className="content">
+            <div className="create">
+              <input
+                className="in"
+                placeholder="Title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+              />
+
+              <input
+                className="in"
+                placeholder="Course"
+                value={newCourse}
+                onChange={(e) => setNewCourse(e.target.value)}
+              />
+
+              <textarea
+                className="in"
+                placeholder="Content"
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                rows={3}
+              />
+
+              <input
+                className="in"
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              />
+
+              <button className="btn" onClick={onCreate} disabled={uploading}>
+                {uploading ? "Uploading..." : "Add Note"}
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="loading">Loading…</div>
+            ) : filtered.length === 0 ? (
+              <div className="empty">No notes found.</div>
             ) : (
-              <span>API …</span>
+              <ul className="notes">
+                {filtered.map((n) => (
+                  <li key={n.id} className="note-card">
+                    <div className="note-title">{n.title}</div>
+
+                    <div className="note-meta">
+                      {n.course} • {n.authorEmail || "Unknown User"} •{" "}
+                      {new Date(n.createdAt).toLocaleString()}
+                    </div>
+
+                    <div className="note-body">{n.content}</div>
+
+                    {n.fileUrl && (
+                      <div style={{ marginTop: "0.75rem" }}>
+                        <a href={n.fileUrl} target="_blank" rel="noreferrer">
+                          📎 {n.fileName || "Attached file"}
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="note-actions">
+                      {canModify(n) && (
+                        <>
+                          <button
+                            className="btn subtle"
+                            onClick={async () => {
+                              const title = window.prompt(
+                                "Edit title:",
+                                n.title
+                              );
+                              if (title === null) return;
+
+                              const course = window.prompt(
+                                "Edit course:",
+                                n.course
+                              );
+                              if (course === null) return;
+
+                              const content = window.prompt(
+                                "Edit content:",
+                                n.content
+                              );
+                              if (content === null) return;
+
+                              await onQuickEdit(n, { title, course, content });
+                            }}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="btn danger"
+                            onClick={() => onDelete(n)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-        </aside>
+          </section>
+        </main>
+      )}
 
-        <section className="content">
-          <div className="create">
-            <input
-              className="in"
-              placeholder="Title"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-            />
+      {activePage === "files" && (
+        <main className="content">
+          <h2>Files</h2>
 
-            <input
-              className="in"
-              placeholder="Course"
-              value={newCourse}
-              onChange={(e) => setNewCourse(e.target.value)}
-            />
-
-            <textarea
-              className="in"
-              placeholder="Content"
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              rows={3}
-            />
-
-            <input
-              className="in"
-              type="file"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-            />
-
-            <button className="btn" onClick={onCreate} disabled={uploading}>
-              {uploading ? "Uploading..." : "Add Note"}
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="loading">Loading…</div>
-          ) : filtered.length === 0 ? (
-            <div className="empty">No notes found.</div>
+          {files.length === 0 ? (
+            <div className="empty">No files uploaded yet.</div>
           ) : (
             <ul className="notes">
-              {filtered.map((n) => (
+              {files.map((n) => (
                 <li key={n.id} className="note-card">
-                  <div className="note-title">{n.title}</div>
+                  <div className="note-title">
+                    {n.fileName || "Attached file"}
+                  </div>
 
                   <div className="note-meta">
                     {n.course} • {n.authorEmail || "Unknown User"} •{" "}
                     {new Date(n.createdAt).toLocaleString()}
                   </div>
 
-                  <div className="note-body">{n.content}</div>
-
-                  {n.fileUrl && (
-                    <div style={{ marginTop: "0.75rem" }}>
-                      <a href={n.fileUrl} target="_blank" rel="noreferrer">
-                        📎 {n.fileName || "Attached file"}
-                      </a>
-                    </div>
-                  )}
-
-                  <div className="note-actions">
-                    {canModify(n) && (
-                      <>
-                        <button
-                          className="btn subtle"
-                          onClick={async () => {
-                            const title = window.prompt("Edit title:", n.title);
-                            if (title === null) return;
-
-                            const course = window.prompt("Edit course:", n.course);
-                            if (course === null) return;
-
-                            const content = window.prompt(
-                              "Edit content:",
-                              n.content
-                            );
-                            if (content === null) return;
-
-                            await onQuickEdit(n, { title, course, content });
-                          }}
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          className="btn danger"
-                          onClick={() => onDelete(n)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+                  <div className="note-body">
+                    Attached to note: {n.title}
                   </div>
+
+                  <a href={n.fileUrl} target="_blank" rel="noreferrer">
+                    Open file
+                  </a>
                 </li>
               ))}
             </ul>
           )}
-        </section>
-      </main>
+        </main>
+      )}
+
+      {activePage === "about" && (
+        <main className="content">
+          <h2>About StudyLink</h2>
+
+          <p>
+            StudyLink is a cloud-based class notes and file sharing app.
+            Users can sign in, create notes, upload attachments, filter by
+            course, and view shared class materials.
+          </p>
+
+          <p>
+            Current features include Google login, admin controls, note
+            ownership permissions, course filters, author filters, file uploads,
+            and a deployed full-stack cloud backend.
+          </p>
+        </main>
+      )}
 
       <footer className="foot">
         © {new Date().getFullYear()} StudyLink
