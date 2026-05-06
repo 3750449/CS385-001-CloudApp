@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+file sharing app. import { useEffect, useMemo, useState } from "react";
 import { useOktaAuth } from "@okta/okta-react";
 
 import {
@@ -455,9 +455,28 @@ export default function App() {
           <h2>About StudyLink</h2>
 
           <p>
-            StudyLink is a cloud-based class notes and file sharing app.
-            Users can sign in, create notes, upload attachments, filter by
-            course, and view shared class materials.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+StudyLink is a multi-cloud storage and authentication web application that works to solve current education problems 
+and act as a way to support personal student motivation through preventing problems like: 
+
+•	Notes and study materials are scattered across chats and personal drives
+•	Hard to find reliable, course-matched resources fast
+•	Collaboration friction → time wasted, lower outcomes
+
+Users can sign in, create notes, upload attachments, filter by course, and view shared class materials. 
+This application Target Users are College students in medium to large classes and Tas or instructors 
+who want a lightweight website hub that can share access with their students from anywhere. 
+Using one hub to upload, search, and manage course-tagged notes we can use Fast filters 
+(like courses, the author or the text) to quickly find and sort notes to locater the correct desired info; 
+there are also an author locked ability to edit once posted so even if there is an error the users can fix with just the click away. 
+The application also uses a flow of authenticate with cookie/session support vita the sites the personal API. 
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
           </p>
 
           <p>
