@@ -222,6 +222,20 @@ export default function App() {
       <header className="topbar">
         <h1>Class Notes</h1>
 
+      <nav className="tabs">
+        <button className="btn subtle" onClick={() => setActivePage("notes")}>
+          Notes
+        </button>
+
+        <button className="btn subtle" onClick={() => setActivePage("files")}>
+          Files
+        </button>
+
+        <button className="btn subtle" onClick={() => setActivePage("about")}>
+          About
+        </button>
+      </nav>
+
         {isAdmin && <span className="admin-badge">Admin</span>}
 
         <input
@@ -243,20 +257,6 @@ export default function App() {
           </button>
         )}
       </header>
-
-      <nav className="tabs">
-        <button className="btn subtle" onClick={() => setActivePage("notes")}>
-          Notes
-        </button>
-
-        <button className="btn subtle" onClick={() => setActivePage("files")}>
-          Files
-        </button>
-
-        <button className="btn subtle" onClick={() => setActivePage("about")}>
-          About
-        </button>
-      </nav>
 
       {activePage === "notes" && (
         <main className="layout">
