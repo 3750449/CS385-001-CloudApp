@@ -37,6 +37,7 @@ export default function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCourse, setActiveCourse] = useState<string | "ALL">("ALL");
+  const [activeAuthor, setActiveAuthor] = useState<string | "ALL">("ALL");
   const [q, setQ] = useState("");
 
   const [newTitle, setNewTitle] = useState("");
@@ -56,10 +57,7 @@ export default function App() {
 
     (async () => {
       try {
-        const [h, ns] = await Promise.all([
-          apiHealth(),
-          listNotes(googleUser?.email || ""),
-        ]);
+        const [h, ns] = await Promise.all([apiHealth(), listNotes()]);
 
         setHealth(h);
         setNotes(ns);
@@ -92,6 +90,14 @@ export default function App() {
     return ["ALL", ...Array.from(s).sort((a, b) => a.localeCompare(b))];
   }, [notes]);
 
+  const authors = useMemo(() => {
+    const s = new Set(
+      notes.map((n) => n.authorEmail || "Unknown User")
+    );
+
+    return ["ALL", ...Array.from(s).sort((a, b) => a.localeCompare(b))];
+  }, [notes]);
+
   const filtered = useMemo(() => {
     const hay = (s: string) => s.toLowerCase();
     const qq = hay(q);
@@ -100,15 +106,21 @@ export default function App() {
       .filter((n) =>
         activeCourse === "ALL" ? true : n.course === activeCourse
       )
+      .filter((n) =>
+        activeAuthor === "ALL"
+          ? true
+          : (n.authorEmail || "Unknown User") === activeAuthor
+      )
       .filter(
         (n) =>
           !qq ||
           hay(n.title).includes(qq) ||
           hay(n.course).includes(qq) ||
-          hay(n.content).includes(qq)
+          hay(n.content).includes(qq) ||
+          hay(n.authorEmail || "").includes(qq)
       )
       .sort((a, b) => b.id - a.id);
-  }, [notes, activeCourse, q]);
+  }, [notes, activeCourse, activeAuthor, q]);
 
   async function onCreate() {
     if (!newTitle || !newCourse || !newContent) return;
@@ -126,6 +138,7 @@ export default function App() {
     setNewCourse("");
     setNewContent("");
     setActiveCourse("ALL");
+    setActiveAuthor("ALL");
   }
 
   async function onDelete(n: Note) {
@@ -139,6 +152,10 @@ export default function App() {
   ) {
     const updated = await updateNote(n.id, patch);
     setNotes((prev) => prev.map((x) => (x.id === n.id ? updated : x)));
+  }
+
+  function canModify(n: Note) {
+    return isAdmin || n.authorEmail === googleUser?.email;
   }
 
   if (!authState?.isAuthenticated && !googleUser) {
@@ -202,6 +219,25 @@ export default function App() {
             ))}
           </ul>
 
+          <div className="left-title" style={{ marginTop: "1rem" }}>
+            Authors
+          </div>
+
+          <ul className="course-list">
+            {authors.map((a) => (
+              <li
+                key={a}
+                className={[
+                  "course-pill",
+                  activeAuthor === a ? "active" : "",
+                ].join(" ")}
+                onClick={() => setActiveAuthor(a as any)}
+              >
+                {a}
+              </li>
+            ))}
+          </ul>
+
           <div className="health">
             {health ? (
               health.ok ? (
@@ -255,37 +291,43 @@ export default function App() {
                   <div className="note-title">{n.title}</div>
 
                   <div className="note-meta">
-                    {n.course} • {new Date(n.createdAt).toLocaleString()}
+                    {n.course} • {n.authorEmail || "Unknown User"} •{" "}
+                    {new Date(n.createdAt).toLocaleString()}
                   </div>
 
                   <div className="note-body">{n.content}</div>
 
                   <div className="note-actions">
-                    <button
-                      className="btn subtle"
-                      onClick={async () => {
-                        const title = window.prompt("Edit title:", n.title);
-                        if (title === null) return;
+                    {canModify(n) && (
+                      <>
+                        <button
+                          className="btn subtle"
+                          onClick={async () => {
+                            const title = window.prompt("Edit title:", n.title);
+                            if (title === null) return;
 
-                        const course = window.prompt("Edit course:", n.course);
-                        if (course === null) return;
+                            const course = window.prompt("Edit course:", n.course);
+                            if (course === null) return;
 
-                        const content = window.prompt("Edit content:", n.content);
-                        if (content === null) return;
+                            const content = window.prompt(
+                              "Edit content:",
+                              n.content
+                            );
+                            if (content === null) return;
 
-                        await onQuickEdit(n, { title, course, content });
-                      }}
-                    >
-                      Edit
-                    </button>
+                            await onQuickEdit(n, { title, course, content });
+                          }}
+                        >
+                          Edit
+                        </button>
 
-                    {isAdmin && (
-                      <button
-                        className="btn danger"
-                        onClick={() => onDelete(n)}
-                      >
-                        Delete
-                      </button>
+                        <button
+                          className="btn danger"
+                          onClick={() => onDelete(n)}
+                        >
+                          Delete
+                        </button>
+                      </>
                     )}
                   </div>
                 </li>

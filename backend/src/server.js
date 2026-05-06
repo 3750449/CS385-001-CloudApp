@@ -40,16 +40,9 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-app.get('/api/notes', async (req, res) => {
+app.get('/api/notes', async (_req, res) => {
   try {
-    const userEmail = req.query.email;
-
-    if (!userEmail) {
-      return res.json([]);
-    }
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       SELECT
         id,
         title,
@@ -58,11 +51,8 @@ app.get('/api/notes', async (req, res) => {
         author_email AS "authorEmail",
         created_at AS "createdAt"
       FROM notes
-      WHERE author_email = $1
       ORDER BY id DESC
-      `,
-      [userEmail]
-    );
+    `);
 
     res.json(result.rows);
   } catch (err) {
@@ -108,17 +98,27 @@ app.delete('/api/notes/:id', async (req, res) => {
     const { id } = req.params;
     const userEmail = req.query.email;
 
-    if (!isAdminEmail(userEmail)) {
-      return res.status(403).json({ error: 'admin only' });
+    if (!userEmail) {
+      return res.status(401).json({ error: 'email required' });
     }
 
     const result = await pool.query(
-      'DELETE FROM notes WHERE id = $1 RETURNING id',
-      [id]
+      `
+      DELETE FROM notes
+      WHERE id = $1
+        AND (
+          author_email = $2
+          OR $3 = TRUE
+        )
+      RETURNING id
+      `,
+      [id, userEmail, isAdminEmail(userEmail)]
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'note not found' });
+      return res.status(403).json({
+        error: 'not allowed or note not found',
+      });
     }
 
     res.status(204).send();

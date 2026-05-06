@@ -10,15 +10,14 @@ export type Note = {
   id: number;
   title: string;
   course: string;
- content: string;
+  content: string;
   createdAt: string;
   updatedAt?: string;
   edits?: number;
   authorEmail?: string;
 };
 
-const BASE =
-  "https://cs385-001-cloudapp-production.up.railway.app";
+const BASE = "https://cs385-001-cloudapp-production.up.railway.app";
 
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -33,15 +32,8 @@ export async function health(): Promise<Health> {
   return j<Health>(res);
 }
 
-export async function listNotes(
-  email: string
-): Promise<Note[]> {
-  const url = new URL(`${BASE}/api/notes`);
-
-  url.searchParams.set("email", email);
-
-  const res = await fetch(url);
-
+export async function listNotes(): Promise<Note[]> {
+  const res = await fetch(`${BASE}/api/notes`);
   return j<Note[]>(res);
 }
 
@@ -64,30 +56,21 @@ export async function createNote(n: {
 
 export async function updateNote(
   id: number,
-  patch: Partial<
-    Pick<Note, "title" | "course" | "content">
-  >
+  patch: Partial<Pick<Note, "title" | "course" | "content">>
 ): Promise<Note> {
-  const res = await fetch(
-    `${BASE}/api/notes/${id}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(patch),
-    }
-  );
+  const res = await fetch(`${BASE}/api/notes/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(patch),
+  });
 
   return j<Note>(res);
 }
 
-export async function removeNote(
-  id: number,
-  email: string
-): Promise<void> {
+export async function removeNote(id: number, email: string): Promise<void> {
   const url = new URL(`${BASE}/api/notes/${id}`);
-
   url.searchParams.set("email", email);
 
   const res = await fetch(url, {
@@ -97,17 +80,4 @@ export async function removeNote(
   if (!res.ok && res.status !== 204) {
     throw new Error("Delete failed");
   }
-}
-
-export async function importNotes(): Promise<
-  { imported: number } & { notes: Note[] }
-> {
-  const res = await fetch(
-    `${BASE}/api/notes/import`,
-    {
-      method: "POST",
-    }
-  );
-
-  return j(res);
 }
