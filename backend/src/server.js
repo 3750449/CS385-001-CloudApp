@@ -5,6 +5,12 @@ const { pool, initDb } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 8199;
 
+const ADMIN_EMAILS = ['3750449@gmail.com'];
+
+function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes(email);
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -67,23 +73,27 @@ app.get('/api/notes', async (req, res) => {
 
 app.post('/api/notes', async (req, res) => {
   try {
-     const { title, course, content, authorEmail } = req.body;
+    const { title, course, content, authorEmail } = req.body;
 
     if (!title || !course || !content) {
-      return res.status(400).json({ error: 'title, course, and content required' });
+      return res.status(400).json({
+        error: 'title, course, and content required',
+      });
     }
 
     const result = await pool.query(
-      `INSERT INTO notes (title, course, content, author_email)
-VALUES ($1, $2, $3, $4)
-       RETURNING
-         id,
-         title,
-         course,
-         content,
-         author_email AS "authorEmail",
-         created_at AS "createdAt"`,
-[title, course, content, authorEmail || null]
+      `
+      INSERT INTO notes (title, course, content, author_email)
+      VALUES ($1, $2, $3, $4)
+      RETURNING
+        id,
+        title,
+        course,
+        content,
+        author_email AS "authorEmail",
+        created_at AS "createdAt"
+      `,
+      [title, course, content, authorEmail || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -93,13 +103,14 @@ VALUES ($1, $2, $3, $4)
   }
 });
 
-initDb().catch((err) => {
-  console.error('Database init failed:', err);
-});
-
 app.delete('/api/notes/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const userEmail = req.query.email;
+
+    if (!isAdminEmail(userEmail)) {
+      return res.status(403).json({ error: 'admin only' });
+    }
 
     const result = await pool.query(
       'DELETE FROM notes WHERE id = $1 RETURNING id',
@@ -150,6 +161,10 @@ app.patch('/api/notes/:id', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'db error' });
   }
+});
+
+initDb().catch((err) => {
+  console.error('Database init failed:', err);
 });
 
 app.listen(PORT, '0.0.0.0', () => {

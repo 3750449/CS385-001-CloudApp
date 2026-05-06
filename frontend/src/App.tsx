@@ -27,6 +27,13 @@ export default function App() {
 
   const [googleUser, setGoogleUser] = useState<User | null>(null);
 
+  // ✅ ADMIN EMAILS
+  const ADMIN_EMAILS = ["YOUR_EMAIL@gmail.com"];
+
+  const isAdmin = googleUser?.email
+    ? ADMIN_EMAILS.includes(googleUser.email)
+    : false;
+
   const [health, setHealth] = useState<Health | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,10 +57,11 @@ export default function App() {
 
     (async () => {
       try {
-const [h, ns] = await Promise.all([
-  apiHealth(),
-  listNotes(googleUser?.email || ""),
-]);
+        const [h, ns] = await Promise.all([
+          apiHealth(),
+          listNotes(googleUser?.email || ""),
+        ]);
+
         setHealth(h);
         setNotes(ns);
       } catch (e) {
@@ -90,7 +98,9 @@ const [h, ns] = await Promise.all([
     const qq = hay(q);
 
     return notes
-      .filter((n) => (activeCourse === "ALL" ? true : n.course === activeCourse))
+      .filter((n) =>
+        activeCourse === "ALL" ? true : n.course === activeCourse
+      )
       .filter(
         (n) =>
           !qq ||
@@ -104,14 +114,15 @@ const [h, ns] = await Promise.all([
   async function onCreate() {
     if (!newTitle || !newCourse || !newContent) return;
 
-const created = await createNote({
-  title: newTitle,
-  course: newCourse,
-  content: newContent,
-  authorEmail: googleUser?.email ?? "unknown",
-});
+    const created = await createNote({
+      title: newTitle,
+      course: newCourse,
+      content: newContent,
+      authorEmail: googleUser?.email ?? "unknown",
+    });
 
     setNotes((prev) => [created, ...prev]);
+
     setNewTitle("");
     setNewCourse("");
     setNewContent("");
@@ -128,7 +139,10 @@ const created = await createNote({
     patch: Partial<Pick<Note, "title" | "course" | "content">>
   ) {
     const updated = await updateNote(n.id, patch);
-    setNotes((prev) => prev.map((x) => (x.id === n.id ? updated : x)));
+
+    setNotes((prev) =>
+      prev.map((x) => (x.id === n.id ? updated : x))
+    );
   }
 
   if (!authState?.isAuthenticated && !googleUser) {
@@ -136,12 +150,16 @@ const created = await createNote({
       <div style={{ padding: "2rem" }}>
         <h2>Login Required</h2>
 
-        <button onClick={loginWithOkta}>Login with Okta</button>
+        <button onClick={loginWithOkta}>
+          Login with Okta
+        </button>
 
         <br />
         <br />
 
-        <button onClick={loginWithGoogle}>Login with Google</button>
+        <button onClick={loginWithGoogle}>
+          Login with Google
+        </button>
       </div>
     );
   }
@@ -151,6 +169,13 @@ const created = await createNote({
       <header className="topbar">
         <h1>Class Notes</h1>
 
+        {/* ✅ ADMIN BADGE */}
+        {isAdmin && (
+          <span className="admin-badge">
+            Admin
+          </span>
+        )}
+
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -159,13 +184,19 @@ const created = await createNote({
         />
 
         {googleUser && (
-          <button className="btn subtle" onClick={logoutGoogle}>
+          <button
+            className="btn subtle"
+            onClick={logoutGoogle}
+          >
             Logout Google
           </button>
         )}
 
         {authState?.isAuthenticated && (
-          <button className="btn subtle" onClick={logoutOkta}>
+          <button
+            className="btn subtle"
+            onClick={logoutOkta}
+          >
             Logout Okta
           </button>
         )}
@@ -173,7 +204,9 @@ const created = await createNote({
 
       <main className="layout">
         <aside className="left-nav">
-          <div className="left-title">Courses</div>
+          <div className="left-title">
+            Courses
+          </div>
 
           <ul className="course-list">
             {courses.map((c) => (
@@ -183,7 +216,9 @@ const created = await createNote({
                   "course-pill",
                   activeCourse === c ? "active" : "",
                 ].join(" ")}
-                onClick={() => setActiveCourse(c as any)}
+                onClick={() =>
+                  setActiveCourse(c as any)
+                }
               >
                 {c}
               </li>
@@ -209,70 +244,120 @@ const created = await createNote({
               className="in"
               placeholder="Title"
               value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
+              onChange={(e) =>
+                setNewTitle(e.target.value)
+              }
             />
 
             <input
               className="in"
               placeholder="Course"
               value={newCourse}
-              onChange={(e) => setNewCourse(e.target.value)}
+              onChange={(e) =>
+                setNewCourse(e.target.value)
+              }
             />
 
             <textarea
               className="in"
               placeholder="Content"
               value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
+              onChange={(e) =>
+                setNewContent(e.target.value)
+              }
               rows={3}
             />
 
-            <button className="btn" onClick={onCreate}>
+            <button
+              className="btn"
+              onClick={onCreate}
+            >
               Add Note
             </button>
           </div>
 
           {loading ? (
-            <div className="loading">Loading…</div>
+            <div className="loading">
+              Loading…
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="empty">No notes found.</div>
+            <div className="empty">
+              No notes found.
+            </div>
           ) : (
             <ul className="notes">
               {filtered.map((n) => (
-                <li key={n.id} className="note-card">
-                  <div className="note-title">{n.title}</div>
-
-                  <div className="note-meta">
-                    {n.course} • {new Date(n.createdAt).toLocaleString()}
+                <li
+                  key={n.id}
+                  className="note-card"
+                >
+                  <div className="note-title">
+                    {n.title}
                   </div>
 
-                  <div className="note-body">{n.content}</div>
+                  <div className="note-meta">
+                    {n.course} •{" "}
+                    {new Date(
+                      n.createdAt
+                    ).toLocaleString()}
+                  </div>
+
+                  <div className="note-body">
+                    {n.content}
+                  </div>
 
                   <div className="note-actions">
                     <button
                       className="btn subtle"
                       onClick={async () => {
-                        const title = window.prompt("Edit title:", n.title);
-                        if (title === null) return;
+                        const title =
+                          window.prompt(
+                            "Edit title:",
+                            n.title
+                          );
 
-                        const course = window.prompt("Edit course:", n.course);
-                        if (course === null) return;
+                        if (title === null)
+                          return;
 
-                        const content = window.prompt("Edit content:", n.content);
-                        if (content === null) return;
+                        const course =
+                          window.prompt(
+                            "Edit course:",
+                            n.course
+                          );
 
-                        await onQuickEdit(n, { title, course, content });
+                        if (course === null)
+                          return;
+
+                        const content =
+                          window.prompt(
+                            "Edit content:",
+                            n.content
+                          );
+
+                        if (content === null)
+                          return;
+
+                        await onQuickEdit(n, {
+                          title,
+                          course,
+                          content,
+                        });
                       }}
                     >
                       Edit
                     </button>
 
-                    <button
-                      className="btn danger"
-                      onClick={() => onDelete(n)}
-                    >
-                      Delete
-                    </button>
+                    {/* ✅ ADMIN ONLY DELETE */}
+                    {isAdmin && (
+                      <button
+                        className="btn danger"
+                        onClick={() =>
+                          onDelete(n)
+                        }
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
