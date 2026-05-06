@@ -49,6 +49,8 @@ app.get('/api/notes', async (_req, res) => {
         course,
         content,
         author_email AS "authorEmail",
+        file_url AS "fileUrl",
+        file_name AS "fileName",
         created_at AS "createdAt"
       FROM notes
       ORDER BY id DESC
@@ -63,7 +65,14 @@ app.get('/api/notes', async (_req, res) => {
 
 app.post('/api/notes', async (req, res) => {
   try {
-    const { title, course, content, authorEmail } = req.body;
+    const {
+      title,
+      course,
+      content,
+      authorEmail,
+      fileUrl,
+      fileName,
+    } = req.body;
 
     if (!title || !course || !content) {
       return res.status(400).json({
@@ -73,17 +82,33 @@ app.post('/api/notes', async (req, res) => {
 
     const result = await pool.query(
       `
-      INSERT INTO notes (title, course, content, author_email)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO notes (
+        title,
+        course,
+        content,
+        author_email,
+        file_url,
+        file_name
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING
         id,
         title,
         course,
         content,
         author_email AS "authorEmail",
+        file_url AS "fileUrl",
+        file_name AS "fileName",
         created_at AS "createdAt"
       `,
-      [title, course, content, authorEmail || null]
+      [
+        title,
+        course,
+        content,
+        authorEmail || null,
+        fileUrl || null,
+        fileName || null,
+      ]
     );
 
     res.status(201).json(result.rows[0]);
@@ -147,6 +172,8 @@ app.patch('/api/notes/:id', async (req, res) => {
         course,
         content,
         author_email AS "authorEmail",
+        file_url AS "fileUrl",
+        file_name AS "fileName",
         created_at AS "createdAt"
       `,
       [title, course, content, id]

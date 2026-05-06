@@ -14,6 +14,8 @@ async function initDb() {
       course TEXT NOT NULL,
       content TEXT NOT NULL,
       author_email TEXT,
+      file_url TEXT,
+      file_name TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -21,6 +23,16 @@ async function initDb() {
   await pool.query(`
     ALTER TABLE notes
     ADD COLUMN IF NOT EXISTS author_email TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE notes
+    ADD COLUMN IF NOT EXISTS file_url TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE notes
+    ADD COLUMN IF NOT EXISTS file_name TEXT;
   `);
 }
 
