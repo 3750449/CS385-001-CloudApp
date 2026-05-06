@@ -1,4 +1,4 @@
-file sharing app. import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOktaAuth } from "@okta/okta-react";
 
 import {
