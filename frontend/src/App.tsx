@@ -136,7 +136,7 @@ export default function App() {
         const path = `${googleUser.email}/${Date.now()}-${safeName}`;
 
         const { error } = await supabase.storage
-          .from("studylink-files")
+          .from("Studylink-files")
           .upload(path, selectedFile);
 
         if (error) {
@@ -146,7 +146,7 @@ export default function App() {
         }
 
         const { data } = supabase.storage
-          .from("studylink-files")
+          .from("Studylink-files")
           .getPublicUrl(path);
 
         fileUrl = data.publicUrl;
