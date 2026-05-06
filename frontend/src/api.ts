@@ -22,9 +22,10 @@ export async function health(): Promise<Health> {
   return j<Health>(res);
 }
 
-export async function listNotes(course?: string): Promise<Note[]> {
+export async function listNotes(email: string): Promise<Note[]> {
   const url = new URL(`${BASE}/api/notes`);
-  if (course) url.searchParams.set("course", course);
+  url.searchParams.set("email", email);
+
   const res = await fetch(url);
   return j<Note[]>(res);
 }
@@ -33,6 +34,7 @@ export async function createNote(n: {
   title: string;
   course: string;
   content: string;
+  authorEmail?: string;
 }): Promise<Note> {
   const res = await fetch(`${BASE}/api/notes`, {
     method: "POST",

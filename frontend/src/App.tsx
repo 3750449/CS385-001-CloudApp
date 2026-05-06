@@ -50,7 +50,10 @@ export default function App() {
 
     (async () => {
       try {
-        const [h, ns] = await Promise.all([apiHealth(), listNotes()]);
+const [h, ns] = await Promise.all([
+  apiHealth(),
+  listNotes(googleUser?.email || ""),
+]);
         setHealth(h);
         setNotes(ns);
       } catch (e) {
@@ -101,11 +104,12 @@ export default function App() {
   async function onCreate() {
     if (!newTitle || !newCourse || !newContent) return;
 
-    const created = await createNote({
-      title: newTitle,
-      course: newCourse,
-      content: newContent,
-    });
+const created = await createNote({
+  title: newTitle,
+  course: newCourse,
+  content: newContent,
+  authorEmail: googleUser?.email ?? "unknown",
+});
 
     setNotes((prev) => [created, ...prev]);
     setNewTitle("");
