@@ -27,7 +27,7 @@ import {
 import "./App.css";
 
 export default function App() {
-  const { oktaAuth, authState } = useOktaAuth();
+  const { authState } = useOktaAuth();
 
   const [googleUser, setGoogleUser] = useState<User | null>(null);
 
