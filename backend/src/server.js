@@ -65,14 +65,7 @@ app.get('/api/notes', async (_req, res) => {
 
 app.post('/api/notes', async (req, res) => {
   try {
-    const {
-      title,
-      course,
-      content,
-      authorEmail,
-      fileUrl,
-      fileName,
-    } = req.body;
+    const { title, course, content, authorEmail, fileUrl, fileName } = req.body;
 
     if (!title || !course || !content) {
       return res.status(400).json({
@@ -182,6 +175,80 @@ app.patch('/api/notes/:id', async (req, res) => {
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'note not found' });
     }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+app.get('/api/profile', async (req, res) => {
+  try {
+    const email = req.query.email;
+
+    if (!email) {
+      return res.status(400).json({ error: 'email required' });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        email,
+        name,
+        contact_info AS "contactInfo",
+        about,
+        photo_url AS "photoUrl",
+        updated_at AS "updatedAt"
+      FROM profiles
+      WHERE email = $1
+      `,
+      [email]
+    );
+
+    res.json(result.rows[0] || null);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+app.put('/api/profile', async (req, res) => {
+  try {
+    const { email, name, contactInfo, about, photoUrl } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'email required' });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO profiles (
+        email,
+        name,
+        contact_info,
+        about,
+        photo_url,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+      ON CONFLICT (email)
+      DO UPDATE SET
+        name = EXCLUDED.name,
+        contact_info = EXCLUDED.contact_info,
+        about = EXCLUDED.about,
+        photo_url = EXCLUDED.photo_url,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING
+        email,
+        name,
+        contact_info AS "contactInfo",
+        about,
+        photo_url AS "photoUrl",
+        updated_at AS "updatedAt"
+      `,
+      [email, name, contactInfo, about, photoUrl]
+    );
 
     res.json(result.rows[0]);
   } catch (err) {

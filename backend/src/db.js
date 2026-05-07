@@ -34,6 +34,18 @@ async function initDb() {
     ALTER TABLE notes
     ADD COLUMN IF NOT EXISTS file_name TEXT;
   `);
+
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS profiles (
+    email TEXT PRIMARY KEY,
+    name TEXT,
+    contact_info TEXT,
+    about TEXT,
+    photo_url TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
 }
 
 module.exports = { pool, initDb };
