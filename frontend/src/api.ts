@@ -19,6 +19,15 @@ export type Note = {
   fileName?: string;
 };
 
+export type Profile = {
+  email: string;
+  name?: string;
+  contactInfo?: string;
+  about?: string;
+  photoUrl?: string;
+  updatedAt?: string;
+};
+
 const BASE = "https://cs385-001-cloudapp-production.up.railway.app";
 
 async function j<T>(res: Response): Promise<T> {
@@ -85,44 +94,6 @@ export async function removeNote(id: number, email: string): Promise<void> {
     throw new Error("Delete failed");
   }
 }
-
-export type Profile = {
-  email: string;
-  name?: string;
-  contactInfo?: string;
-  about?: string;
-  photoUrl?: string;
-  updatedAt?: string;
-};
-
-export async function getProfile(email: string): Promise<Profile | null> {
-  const url = new URL(`${BASE}/api/profile`);
-  url.searchParams.set("email", email);
-
-  const res = await fetch(url);
-  return j<Profile | null>(res);
-}
-
-export async function saveProfile(p: Profile): Promise<Profile> {
-  const res = await fetch(`${BASE}/api/profile`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(p),
-  });
-
-  return j<Profile>(res);
-}
-
-export type Profile = {
-  email: string;
-  name?: string;
-  contactInfo?: string;
-  about?: string;
-  photoUrl?: string;
-  updatedAt?: string;
-};
 
 export async function getProfile(email: string): Promise<Profile | null> {
   const url = new URL(`${BASE}/api/profile`);
