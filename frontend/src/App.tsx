@@ -17,8 +17,11 @@ import {
   createNote,
   updateNote,
   removeNote,
+  getProfile,
+  saveProfile,
   type Note,
   type Health,
+  type Profile,
 } from "./api";
 
 import "./App.css";
@@ -35,7 +38,8 @@ export default function App() {
     : false;
 
   const [activePage, setActivePage] =
-    useState<"notes" | "files" | "about">("notes");
+    useState<"notes" | "files" | "about" | "settings">("notes");
+
 
   const [health, setHealth] = useState<Health | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -49,6 +53,18 @@ export default function App() {
   const [newContent, setNewContent] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+const [editingId, setEditingId] = useState<number | null>(null);
+const [editTitle, setEditTitle] = useState("");
+const [editCourse, setEditCourse] = useState("");
+const [editContent, setEditContent] = useState("");
+
+const [profile, setProfile] = useState<Profile | null>(null);
+const [profileName, setProfileName] = useState("");
+const [profileContact, setProfileContact] = useState("");
+const [profileAbout, setProfileAbout] = useState("");
+const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -74,6 +90,28 @@ export default function App() {
     })();
   }, [authState?.isAuthenticated, googleUser]);
 
+useEffect(() => {
+  if (!googleUser?.email) return;
+
+  (async () => {
+    try {
+      const p = await getProfile(googleUser.email);
+
+      setProfile(p);
+
+      setProfileName(p?.name || googleUser.displayName || "");
+      setProfileContact(p?.contactInfo || googleUser.email || "");
+      setProfileAbout(p?.about || "Student using StudyLink.");
+    } catch (e) {
+      console.error(e);
+
+      setProfileName(googleUser.displayName || "");
+      setProfileContact(googleUser.email || "");
+      setProfileAbout("Student using StudyLink.");
+    }
+  })();
+}, [googleUser]);
+
   async function loginWithGoogle() {
     await signInWithPopup(auth, googleProvider);
   }
@@ -89,6 +127,51 @@ export default function App() {
   async function logoutOkta() {
     await oktaAuth.signOut();
   }
+
+async function onSaveProfile() {
+  if (!googleUser?.email) return;
+
+  setSavingProfile(true);
+
+  try {
+    let photoUrl = profile?.photoUrl || googleUser.photoURL || "";
+
+    if (profilePhotoFile) {
+      const safeName = profilePhotoFile.name.replaceAll(" ", "-");
+      const path = `profiles/${googleUser.email}/${Date.now()}-${safeName}`;
+
+      const { error } = await supabase.storage
+        .from("Studylink-files")
+        .upload(path, profilePhotoFile);
+
+      if (error) {
+        console.error(error);
+        alert("Profile photo upload failed");
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("Studylink-files")
+        .getPublicUrl(path);
+
+      photoUrl = data.publicUrl;
+    }
+
+    const saved = await saveProfile({
+      email: googleUser.email,
+      name: profileName,
+      contactInfo: profileContact,
+      about: profileAbout,
+      photoUrl,
+    });
+
+    setProfile(saved);
+    setProfilePhotoFile(null);
+    alert("Profile saved");
+  } finally {
+    setSavingProfile(false);
+  }
+}
 
   const courses = useMemo(() => {
     const s = new Set(notes.map((n) => n.course));
@@ -243,6 +326,14 @@ export default function App() {
           >
             About
           </button>
+
+          <button
+            className="btn subtle"
+            onClick={() => setActivePage("settings")}
+          >
+           Settings
+          </button>
+
         </nav>
 
         {isAdmin && <span className="admin-badge">Admin</span>}
@@ -383,48 +474,86 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="note-actions">
-                      {canModify(n) && (
-                        <>
-                          <button
-                            className="btn subtle"
-                            onClick={async () => {
-                              const title = window.prompt(
-                                "Edit title:",
-                                n.title
-                              );
-                              if (title === null) return;
+{editingId === n.id && (
+  <div className="edit-box">
+    <input
+      className="in"
+      value={editTitle}
+      onChange={(e) => setEditTitle(e.target.value)}
+      placeholder="Edit title"
+    />
 
-                              const course = window.prompt(
-                                "Edit course:",
-                                n.course
-                              );
-                              if (course === null) return;
+    <input
+      className="in"
+      value={editCourse}
+      onChange={(e) => setEditCourse(e.target.value)}
+      placeholder="Edit course"
+    />
 
-                              const content = window.prompt(
-                                "Edit content:",
-                                n.content
-                              );
-                              if (content === null) return;
+    <textarea
+      className="in"
+      value={editContent}
+      onChange={(e) => setEditContent(e.target.value)}
+      rows={4}
+      placeholder="Edit content"
+    />
 
-                              await onQuickEdit(n, {
-                                title,
-                                course,
-                                content,
-                              });
-                            }}
-                          >
-                            Edit
-                          </button>
+    <div className="note-actions">
+      <button
+        className="btn"
+        onClick={async () => {
+          const updated = await updateNote(n.id, {
+            title: editTitle,
+            course: editCourse,
+            content: editContent,
+          });
 
-                          <button
-                            className="btn danger"
-                            onClick={() => onDelete(n)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
+          setNotes((prev) =>
+            prev.map((x) => (x.id === n.id ? updated : x))
+          );
+
+          setEditingId(null);
+        }}
+      >
+        Save
+      </button>
+
+      <button
+        className="btn subtle"
+        onClick={() => setEditingId(null)}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
+
+<div className="note-actions">
+  {canModify(n) && editingId !== n.id && (
+    <>
+      <button
+        className="btn subtle"
+        onClick={() => {
+          setEditingId(n.id);
+          setEditTitle(n.title);
+          setEditCourse(n.course);
+          setEditContent(n.content);
+        }}
+      >
+        Edit
+      </button>
+
+      <button
+        className="btn danger"
+        onClick={() => onDelete(n)}
+      >
+        Delete
+      </button>
+    </>
+  )}
+
+
                     </div>
                   </li>
                 ))}
@@ -514,9 +643,84 @@ export default function App() {
   </main>
 )}
 
+{activePage === "settings" && (
+  <main className="settings-page">
+    <h2>Settings</h2>
+
+
+<section className="settings-card note-card">
+  <h3>Account</h3>
+
+  <div className="profile-row">
+    <div className="profile-avatar">
+      {profile?.photoUrl || googleUser?.photoURL ? (
+        <img
+          src={profile?.photoUrl || googleUser?.photoURL || ""}
+          alt="Profile"
+        />
+      ) : (
+        <span>👤</span>
+      )}
+    </div>
+
+    <div className="profile-fields">
+      <label>Name</label>
+      <input
+        className="in"
+        placeholder="Name"
+        value={profileName}
+        onChange={(e) => setProfileName(e.target.value)}
+      />
+
+      <label>Contact Info</label>
+      <input
+        className="in"
+        placeholder="Contact email"
+        value={profileContact}
+        onChange={(e) => setProfileContact(e.target.value)}
+      />
+
+      <label>About</label>
+      <textarea
+        className="in"
+        placeholder="About"
+        rows={4}
+        value={profileAbout}
+        onChange={(e) => setProfileAbout(e.target.value)}
+      />
+
+      <label>Profile Photo</label>
+      <input
+        className="in"
+        type="file"
+        accept="image/*"
+        onChange={(e) => setProfilePhotoFile(e.target.files?.[0] ?? null)}
+      />
+
+      <button className="btn" onClick={onSaveProfile} disabled={savingProfile}>
+        {savingProfile ? "Saving..." : "Save Profile"}
+      </button>
+    </div>
+  </div>
+</section>
+
+
+    <section className="settings-card">
+      <h3>System Status</h3>
+
+      <div className="status-list">
+        <div>Auth: {googleUser ? "Online ✅" : "Offline ⚠️"}</div>
+        <div>Storage: {health?.ok ? "Online ✅" : "Offline ⚠️"}</div>
+        <div>Security: {health?.ok ? "Online ✅" : "Offline ⚠️"}</div>
+      </div>
+    </section>
+  </main>
+)}
+
       <footer className="foot">
         © {new Date().getFullYear()} StudyLink
       </footer>
     </div>
   );
 }
+
