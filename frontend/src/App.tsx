@@ -467,44 +467,52 @@ export default function App() {
         </main>
       )}
 
-      {activePage === "about" && (
-        <main className="content">
-          <h2>About StudyLink</h2>
+{activePage === "about" && (
+  <main className="content">
+    <h2>About StudyLink</h2>
 
-          <p>
-            StudyLink is a multi-cloud storage and authentication web
-            application designed to help students organize, share, and find
-            course materials more easily.
-          </p>
+    <p>
+      StudyLink is a multi-cloud storage and authentication web application
+      designed to help students organize, share, and find course materials more
+      easily.
+    </p>
 
-          <ul>
-            <li>
-              Notes and study materials are scattered across chats and personal
-              drives.
-            </li>
-            <li>
-              Reliable, course-matched resources can be hard to find quickly.
-            </li>
-            <li>
-              Collaboration friction wastes time and can lower student outcomes.
-            </li>
-          </ul>
+    <ul>
+      <li>
+        Notes and study materials are scattered across chats and personal
+        drives.
+      </li>
 
-          <p>
-            Users can sign in, create notes, upload attachments, filter by
-            course, and view shared class materials. The target users are
-            college students in medium to large classes, as well as TAs and
-            instructors who want a lightweight website hub for sharing access
-            with students from anywhere.
-          </p>
+      <li>
+        Reliable, course-matched resources can be hard to find quickly.
+      </li>
 
-          <p>
-            StudyLink uses Firebase Google authentication, a Railway-hosted
-            Express API, PostgreSQL note storage, Supabase file storage, and
-            Vercel frontend deployment.
-          </p>
-        </main>
-      )}
+      <li>
+        Collaboration friction wastes time and can lower student outcomes.
+      </li>
+    </ul>
+
+    <p>
+      Users can sign in, create notes, upload attachments, filter by course,
+      and view shared class materials. The target users are college students
+      in medium to large classes, as well as TAs and instructors who want a
+      lightweight website hub for sharing access with students from anywhere.
+    </p>
+
+    <p>
+      StudyLink provides one hub to upload, search, and manage course-tagged
+      notes. Users can filter by course, author, or text to quickly locate the
+      information they need. Authors can also edit their own posts after
+      publishing, making it easy to fix mistakes.
+    </p>
+
+    <p>
+      The application supports Google-based authentication through Firebase,
+      cloud-hosted APIs through Railway, PostgreSQL-backed note storage, and
+      Supabase cloud file uploads for attachments and shared study resources.
+    </p>
+  </main>
+)}
 
       <footer className="foot">
         © {new Date().getFullYear()} StudyLink
