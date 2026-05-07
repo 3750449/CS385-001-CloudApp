@@ -35,7 +35,7 @@ export default function App() {
     : false;
 
   const [activePage, setActivePage] =
-    useState<"notes" | "files" | "about" | "settings">("notes");
+    useState<"notes" | "files" | "about">("notes");
 
   const [health, setHealth] = useState<Health | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -97,6 +97,7 @@ export default function App() {
 
   const authors = useMemo(() => {
     const s = new Set(notes.map((n) => n.authorEmail || "Unknown User"));
+
     return ["ALL", ...Array.from(s).sort((a, b) => a.localeCompare(b))];
   }, [notes]);
 
@@ -126,7 +127,9 @@ export default function App() {
   }, [notes, activeCourse, activeAuthor, q]);
 
   const files = useMemo(() => {
-    return notes.filter((n) => n.fileUrl).sort((a, b) => b.id - a.id);
+    return notes
+      .filter((n) => n.fileUrl)
+      .sort((a, b) => b.id - a.id);
   }, [notes]);
 
   async function onCreate() {
@@ -219,6 +222,29 @@ export default function App() {
       <header className="topbar">
         <h1>Class Notes</h1>
 
+        <nav className="tabs">
+          <button
+            className="btn subtle"
+            onClick={() => setActivePage("notes")}
+          >
+            Notes
+          </button>
+
+          <button
+            className="btn subtle"
+            onClick={() => setActivePage("files")}
+          >
+            Files
+          </button>
+
+          <button
+            className="btn subtle"
+            onClick={() => setActivePage("about")}
+          >
+            About
+          </button>
+        </nav>
+
         {isAdmin && <span className="admin-badge">Admin</span>}
 
         <input
@@ -240,27 +266,6 @@ export default function App() {
           </button>
         )}
       </header>
-
-      <nav className="tabs">
-        <button className="btn subtle" onClick={() => setActivePage("notes")}>
-          Notes
-        </button>
-
-        <button className="btn subtle" onClick={() => setActivePage("files")}>
-          Files
-        </button>
-
-        <button className="btn subtle" onClick={() => setActivePage("about")}>
-          About
-        </button>
-
-        <button
-          className="btn subtle"
-          onClick={() => setActivePage("settings")}
-        >
-          Settings
-        </button>
-      </nav>
 
       {activePage === "notes" && (
         <main className="layout">
@@ -344,7 +349,11 @@ export default function App() {
                 onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
               />
 
-              <button className="btn" onClick={onCreate} disabled={uploading}>
+              <button
+                className="btn"
+                onClick={onCreate}
+                disabled={uploading}
+              >
                 {uploading ? "Uploading..." : "Add Note"}
               </button>
             </div>
@@ -398,7 +407,11 @@ export default function App() {
                               );
                               if (content === null) return;
 
-                              await onQuickEdit(n, { title, course, content });
+                              await onQuickEdit(n, {
+                                title,
+                                course,
+                                content,
+                              });
                             }}
                           >
                             Edit
@@ -440,7 +453,9 @@ export default function App() {
                     {new Date(n.createdAt).toLocaleString()}
                   </div>
 
-                  <div className="note-body">Attached to note: {n.title}</div>
+                  <div className="note-body">
+                    Attached to note: {n.title}
+                  </div>
 
                   <a href={n.fileUrl} target="_blank" rel="noreferrer">
                     Open file
@@ -457,43 +472,37 @@ export default function App() {
           <h2>About StudyLink</h2>
 
           <p>
-            StudyLink is a cloud-based class notes and file sharing app. Users
-            can sign in, create notes, upload attachments, filter by course, and
-            view shared class materials.
+            StudyLink is a multi-cloud storage and authentication web
+            application designed to help students organize, share, and find
+            course materials more easily.
+          </p>
+
+          <ul>
+            <li>
+              Notes and study materials are scattered across chats and personal
+              drives.
+            </li>
+            <li>
+              Reliable, course-matched resources can be hard to find quickly.
+            </li>
+            <li>
+              Collaboration friction wastes time and can lower student outcomes.
+            </li>
+          </ul>
+
+          <p>
+            Users can sign in, create notes, upload attachments, filter by
+            course, and view shared class materials. The target users are
+            college students in medium to large classes, as well as TAs and
+            instructors who want a lightweight website hub for sharing access
+            with students from anywhere.
           </p>
 
           <p>
-            Current features include Google login, admin controls, note
-            ownership permissions, course filters, author filters, file uploads,
-            and a deployed full-stack cloud backend.
+            StudyLink uses Firebase Google authentication, a Railway-hosted
+            Express API, PostgreSQL note storage, Supabase file storage, and
+            Vercel frontend deployment.
           </p>
-        </main>
-      )}
-
-      {activePage === "settings" && (
-        <main className="content">
-          <h2>Settings</h2>
-
-          <div className="note-card">
-            <div className="note-title">Account</div>
-            <div className="note-meta">
-              Signed in as {googleUser?.email || "Unknown"}
-            </div>
-
-            <p>Role: {isAdmin ? "Admin" : "User"}</p>
-
-            <button className="btn subtle" onClick={logoutGoogle}>
-              Logout Google
-            </button>
-          </div>
-
-          <div className="note-card">
-            <div className="note-title">System Status</div>
-            <p>API: {health?.ok ? "Online ✅" : "Offline ⚠️"}</p>
-            <p>Storage: Supabase Storage enabled</p>
-            <p>Auth: Firebase Google Login enabled</p>
-            <p>Okta: Optional enterprise SSO / disabled for demo</p>
-          </div>
         </main>
       )}
 
