@@ -8,6 +8,16 @@ The project demonstrates a modern multi-cloud architecture using managed cloud s
 
 ---
 
+## Live Deployment
+
+Website:
+https://cs-385-001-cloud-a5drop332-cs385-001-cloudapp.vercel.app/
+
+GitHub Repository:
+https://github.com/3750449/CS385-001-CloudApp.git
+
+---
+
 ## Features
 
 - Google authentication with Firebase
